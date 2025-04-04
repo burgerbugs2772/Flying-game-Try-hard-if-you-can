@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flying Game with Speed Options</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #87CEEB;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+
+        #game-container {
+            position: relative;
+            width: 400px;
+            height: 600px;
+            background-color: #87CEEB;
+            overflow: hidden;
+            border: 2px solid #333;
+        }
+
+        #player {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background-color: #FF6347;
+            border-radius: 50%;
+            left: 50px;
+            top: 300px;
+            z-index: 10;
+            transition: transform 0.1s;
+        }
+
+        .obstacle {
+            position: absolute;
+            width: 60px;
+            background-color: #228B22;
+            right: 0;
+        }
+
+        #score {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 20px;
+            color: white;
+            z-index: 100;
+            text-shadow: 1px 1px 2px black;
+        }
+
+        #game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 36px;
+            text-align: center;
+            text-shadow: 2px 2px 4px black;
+            display: none;
+            z-index: 100;
+        }
+
+        #game-over span {
+            font-size: 18px;
+            display: block;
+            margin-top: 10px;
+        }
+
+        #speed-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 100;
+            display: flex;
+            gap: 5px;
+        }
+
+        .speed-btn {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 5px;
+            background-color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .speed-btn.active {
+            background-color: #FF6347;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="player"></div>
+        <div id="score">Score: 0</div>
+        <div id="speed-controls">
+            <button class="speed-btn" id="slow-btn">Slow</button>
+            <button class="speed-btn active" id="default-btn">Default</button>
+            <button class="speed-btn" id="fast-btn">Fast</button>
+        </div>
+        <div id="game-over">GAME OVER<br><span>Press Space to Restart</span></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const gameContainer = document.getElementById('game-container');
+            const player = document.getElementById('player');
+            const scoreElement = document.getElementById('score');
+            const gameOverElement = document.getElementById('game-over');
+            const slowBtn = document.getElementById('slow-btn');
+            const defaultBtn = document.getElementById('default-btn');
+            const fastBtn = document.getElementById('fast-btn');
+            
+            // Game settings
+            const speedSettings = {
+                slow: { baseSpeed: 1.5, frequency: 2500, gapHeight: 160 },
+                default: { baseSpeed: 2, frequency: 2000, gapHeight: 140 },
+                fast: { baseSpeed: 3, frequency: 1500, gapHeight: 120 }
+            };
+            
+            let currentSpeed = 'default';
+            let playerY = 300;
+            let gravity = 0.5;
+            let velocity = 0;
+            let gameSpeed = speedSettings.default.baseSpeed;
+            let score = 0;
+            let gameRunning = true;
+            let obstacles = [];
+            let obstacleFrequency = speedSettings.default.frequency;
+            let lastObstacleTime = 0;
+            let airResistance = 0.01;
+            let gapHeight = speedSettings.default.gapHeight;
+            
+            // Game loop
+            function gameLoop(timestamp) {
+                if (!gameRunning) return;
+                
+                // Apply gravity
+                velocity += gravity;
+                
+                // Apply air resistance
+                velocity *= (1 - airResistance);
+                
+                playerY += velocity;
+                player.style.top = playerY + 'px';
+                
+                // Check for collisions with top/bottom
+                if (playerY <= 0 || playerY >= gameContainer.offsetHeight - player.offsetHeight) {
+                    endGame();
+                }
+                
+                // Generate obstacles
+                if (timestamp - lastObstacleTime > obstacleFrequency) {
+                    createObstacle();
+                    lastObstacleTime = timestamp;
+                }
+                
+                // Move obstacles
+                moveObstacles();
+                
+                // Check for collisions with obstacles
+                checkCollisions();
+                
+                requestAnimationFrame(gameLoop);
+            }
+        
+            function createObstacle() {
+                // Random gap position
+                const gapPosition = Math.random() * (gameContainer.offsetHeight - (gapHeight + 100)) + 50;
+                
+                // Top obstacle
+                const topObstacle = document.createElement('div');
+                topObstacle.className = 'obstacle';
+                topObstacle.style.height = gapPosition + 'px';
+                topObstacle.style.top = '0';
+                topObstacle.style.left = gameContainer.offsetWidth + 'px';
+                
+                // Bottom obstacle
+                const bottomObstacle = document.createElement('div');
+                bottomObstacle.className = 'obstacle';
+                bottomObstacle.style.height = (gameContainer.offsetHeight - gapPosition - gapHeight) + 'px';
+                bottomObstacle.style.bottom = '0';
+                bottomObstacle.style.left = gameContainer.offsetWidth + 'px';
+                
+                gameContainer.appendChild(topObstacle);
+                gameContainer.appendChild(bottomObstacle);
+                
+                obstacles.push({
+                    element: topObstacle,
+                    x: gameContainer.offsetWidth,
+                    width: 60,
+                    height: gapPosition,
+                    passed: false
+                });
+                
+                obstacles.push({
+                    element: bottomObstacle,
+                    x: gameContainer.offsetWidth,
+                    width: 60,
+                    height: gameContainer.offsetHeight - gapPosition - gapHeight,
+                    passed: false
+                });
+            }
+            
+            function moveObstacles() {
+                obstacles.forEach(obstacle => {
+                    obstacle.x -= gameSpeed;
+                    obstacle.element.style.left = obstacle.x + 'px';
+                    
+                    // Remove obstacles that are off screen
+                    if (obstacle.x + obstacle.width < 0) {
+                        obstacle.element.remove();
+                        obstacles = obstacles.filter(o => o !== obstacle);
+                    }
+                    
+                    // Score when player passes an obstacle pair
+                    if (!obstacle.passed && obstacle.x + obstacle.width < player.offsetLeft) {
+                        obstacle.passed = true;
+                        score++;
+                        scoreElement.textContent = 'Score: ' + score;
+                        
+                        // Increase difficulty
+                        if (score % 5 === 0) {
+                            gameSpeed += 0.2;
+                            obstacleFrequency = Math.max(1000, obstacleFrequency - 50);
+                        }
+                    }
+                });
+            }
+            
+            function checkCollisions() {
+                const playerRect = player.getBoundingClientRect();
+                
+                obstacles.forEach(obstacle => {
+                    const obstacleRect = obstacle.element.getBoundingClientRect();
+                    
+                    if (
+                        playerRect.right > obstacleRect.left &&
+                        playerRect.left < obstacleRect.right &&
+                        playerRect.bottom > obstacleRect.top &&
+                        playerRect.top < obstacleRect.bottom
+                    ) {
+                        endGame();
+                    }
+                });
+            }
+            
+            function endGame() {
+                gameRunning = false;
+                gameOverElement.style.display = 'block';
+            }
+            
+            function restartGame() {
+                // Clear obstacles
+                obstacles.forEach(obstacle => obstacle.element.remove());
+                obstacles = [];
+                
+                // Reset player
+                playerY = 300;
+                velocity = 0;
+                player.style.top = playerY + 'px';
+                
+                // Reset game state
+                score = 0;
+                gameSpeed = speedSettings[currentSpeed].baseSpeed;
+                obstacleFrequency = speedSettings[currentSpeed].frequency;
+                gapHeight = speedSettings[currentSpeed].gapHeight;
+                scoreElement.textContent = 'Score: 0';
+                gameOverElement.style.display = 'none';
+                gameRunning = true;
+                
+                // Restart game loop
+                lastObstacleTime = performance.now();
+                requestAnimationFrame(gameLoop);
+            }
+            
+            function setSpeed(speed) {
+                currentSpeed = speed;
+                gameSpeed = speedSettings[speed].baseSpeed;
+                obstacleFrequency = speedSettings[speed].frequency;
+                gapHeight = speedSettings[speed].gapHeight;
+                
+                // Update active button
+                document.querySelectorAll('.speed-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                document.getElementById(`${speed}-btn`).classList.add('active');
+            }
+            
+            // Speed controls
+            slowBtn.addEventListener('click', () => setSpeed('slow'));
+            defaultBtn.addEventListener('click', () => setSpeed('default'));
+            fastBtn.addEventListener('click', () => setSpeed('fast'));
+            
+            // Game controls
+            document.addEventListener('keydown', (e) => {
+                if (e.code === 'Space') {
+                    if (!gameRunning) {
+                        restartGame();
+                    } else {
+                        velocity = -10;
+                    }
+                }
+            });
+            
+            gameContainer.addEventListener('click', () => {
+                if (!gameRunning) {
+                    restartGame();
+                } else {
+                    velocity = -10;
+                }
+            });
+            
+            // Start the game
+            lastObstacleTime = performance.now();
+            requestAnimationFrame(gameLoop);
+        });
+    </script>
+</body>
+</html>
