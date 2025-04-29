@@ -5,14 +5,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const gameOverElement = document.getElementById('game-over');
     
     let playerY = 300;
-    let gravity = 0.5;
+    let gravity = 0.3; // Reduced from 0.5
     let velocity = 0;
     let gameSpeed = 2;
     let score = 0;
     let gameRunning = true;
     let obstacles = [];
-    let obstacleFrequency = 1500; // milliseconds
+    let obstacleFrequency = 1500;
     let lastObstacleTime = 0;
+    let airResistance = 0.02; // Added for smoother movement
     
     // Initialize player position
     player.style.top = playerY + 'px';
@@ -23,6 +24,10 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Apply gravity
         velocity += gravity;
+        
+        // Apply air resistance
+        velocity *= (1 - airResistance);
+        
         playerY += velocity;
         player.style.top = playerY + 'px';
         
@@ -55,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Random gap position
         const gapPosition = Math.random() * (gameContainer.offsetHeight - 200) + 50;
-        const gapHeight = 150; // Space between top and bottom obstacles
+        const gapHeight = 150;
         
         // Top obstacle
         obstacleTop.style.height = gapPosition + 'px';
@@ -162,17 +167,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!gameRunning) {
                 restartGame();
             } else {
-                velocity = -10; // Jump/flap
+                velocity = -7; // Reduced from -10 for smaller jumps
             }
         }
     });
     
-    // Touch controls for mobile
     gameContainer.addEventListener('click', () => {
         if (!gameRunning) {
             restartGame();
         } else {
-            velocity = -10;
+            velocity = -7; // Reduced from -10 for smaller jumps
         }
     });
     
