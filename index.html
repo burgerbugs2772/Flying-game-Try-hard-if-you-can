@@ -129,7 +129,7 @@
             
             let currentSpeed = 'default';
             let playerY = 300;
-            let gravity = 0.5;
+            let gravity = 0.3; // Reduced for easier control
             let velocity = 0;
             let gameSpeed = speedSettings.default.baseSpeed;
             let score = 0;
@@ -137,7 +137,7 @@
             let obstacles = [];
             let obstacleFrequency = speedSettings.default.frequency;
             let lastObstacleTime = 0;
-            let airResistance = 0.01;
+            let airResistance = 0.02; // Increased for smoother movement
             let gapHeight = speedSettings.default.gapHeight;
             
             // Game loop
@@ -307,7 +307,7 @@
                     if (!gameRunning) {
                         restartGame();
                     } else {
-                        velocity = -10;
+                        velocity = -7; // Reduced from -10 for smaller jumps
                     }
                 }
             });
@@ -316,7 +316,7 @@
                 if (!gameRunning) {
                     restartGame();
                 } else {
-                    velocity = -10;
+                    velocity = -7; // Reduced from -10 for smaller jumps
                 }
             });
             
